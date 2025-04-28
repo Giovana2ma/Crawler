@@ -41,7 +41,7 @@ class Crawler:
     def _crawl(self):
 
         thread_id = threading.get_ident()
-        fetcher = Fetcher(Session())  
+        fetcher = Fetcher(self.session)  
         self.fetchers[thread_id] = fetcher
 
         while self.running:
