@@ -41,7 +41,7 @@ class Crawler:
     def _crawl(self):
 
         thread_id = threading.get_ident()
-        fetcher = Fetcher(self.session)  # Each thread creates its own Fetcher
+        fetcher = Fetcher(Session())  
         self.fetchers[thread_id] = fetcher
 
         while self.running:
@@ -50,7 +50,7 @@ class Crawler:
             domain_lock = self.get_lock(domain) 
             with domain_lock:
                 result = fetcher.collect(url)
-                self.frontier.update_use(domain)
+            self.frontier.update_use(domain)
 
             if result is None:
                 self.frontier.error(domain)
