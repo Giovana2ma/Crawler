@@ -83,6 +83,7 @@ class Crawler:
             
             self.buffer.append(content)
             self.count += 1
+            print(self.count)
 
     def crawl(self):
         self.frontier.update_urls(self.seeds)
