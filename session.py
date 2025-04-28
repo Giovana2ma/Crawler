@@ -1,4 +1,5 @@
 import requests
+import logging
 
 class Session:
     def __init__(self, request_limit=500):
@@ -16,6 +17,7 @@ class Session:
         """
         Closes the current session and starts a new one.
         """
+        logging.info(f"Reseting {self.request_count}")
         self.session.close()
         self.session = requests.Session()
         self.request_count = 0

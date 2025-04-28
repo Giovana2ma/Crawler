@@ -4,6 +4,7 @@ import threading
 from protego import Protego
 import logging
 
+import traceback
 
 class Fetcher():
     def __init__(self,session):
@@ -30,8 +31,7 @@ class Fetcher():
                 return response
                 
         except Exception as e:
-            logging.error(f"Error fetching URL {url}: {e}")
-            pass
+            logging.error(f"Error fetching URL {url}: {e} \n\ntrace: {traceback.format_exc()}")
         return None
         
     def get_content(self):
