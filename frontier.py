@@ -25,7 +25,7 @@ class Frontier:
             return
         if url in self.visited:
             return
-        if domain not in baned_domains:
+        if domain not in self.baned_domains:
             self.frontier[domain].append(url)
 
     def error(self, domain):
