@@ -73,7 +73,7 @@ class Crawler:
 
     def store_content(self, content):
         with self.lock:
-            if self.count % 1000 == 0:
+            if self.count % 50 == 0:
                 self.storage.write(self.buffer)
                 self.buffer = []
 
