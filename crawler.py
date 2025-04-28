@@ -2,24 +2,38 @@ import threading
 from frontier import Frontier
 from fetcher import Fetcher
 from session import Session
-from storage import Writer
+from storage import Storage
+from debugger import Debugger
+from analysis import Analysis
+
 import time
 
+class Page:
+    def __init__(self, url, content):
+        self.url = url
+        self.content = content
+
 class Crawler:
-    def __init__(self, seeds, execution_id, limit, max_workers=5):
-        self._finished_event = threading.Event()
-        self.limit = limit
+    def __init__(self, seeds,max_workers,execution_id,debugger_mode,limit=100000):
+        self.seeds = seeds
+        self.count = 0
+        self.fetchers = {}  
+        self.buffer = []
+
+        self.max_workers = max_workers
         self.execution_id = execution_id
+        self.limit = limit
+
+        self.running = True
+        self.domain_locks = {}
+        self.threads = []
+        self.lock = threading.Lock()
+
         self.frontier = Frontier()
         self.session = Session()
-        self.writer = Writer(execution_id, limit, self._finished_event)
-        self.domain_locks = {}
-        self.fetcher = Fetcher(self.session)
-        self.max_workers = max_workers
-        self.threads = []
-        self.seeds = seeds
-        self.lock = threading.Lock()
-        self.count = 0
+        self.storage = Storage(execution_id)
+        self.analysis = Analysis()
+        self.debugger = Debugger(debugger_mode)
 
     def get_lock(self, domain):
         if domain not in self.domain_locks:
@@ -28,51 +42,60 @@ class Crawler:
 
     def _crawl(self):
 
-        while not self._finished_event.is_set():
-            url,domain = self.frontier.get_url()
+        thread_id = threading.get_ident()
+        fetcher = Fetcher(self.session)  # Each thread creates its own Fetcher
+        self.fetchers[thread_id] = fetcher
 
-            if url is None:
-                time.sleep(0.1)
-                continue
+        while self.running:
+            url, domain = self.frontier.get_url()
 
             domain_lock = self.get_lock(domain) 
             with domain_lock:
-                result = self.fetcher.collect(url)
+                result = fetcher.collect(url)
+                self.frontier.update_use(domain)
 
             if result is None:
+                self.frontier.error(domain)
                 continue
 
 
-            title, content, links,response = result
-            print(f"[{threading.current_thread().name}] Fetched: {url} (Title: {title})")
+            title, content, links, response = result
+            self.analysis.add_page(url, content)
+            self.debugger.log(url, title, content)
     
-            # Update frontier with newly discovered links
             timestamp = time.time()
             self.frontier.update_last_access(url, timestamp)
-            self.frontier.update(links)
-            # self.writer.write(url, response)
-        
+            self.frontier.update_urls(links)
 
+            if self.running:
+                page = Page(url, response)
+                self.store_content(page)
+        
         return
-        
 
+    def store_content(self, content):
+        with self.lock:
+            if self.count % 10 == 0:
+                self.storage.write(self.buffer)
+                self.buffer = []
+
+            if self.count >= self.limit:
+                self.running = False
+                return
+            
+            self.buffer.append(content)
+            self.count += 1
 
     def crawl(self):
-        self.frontier.update(self.seeds)
+        self.frontier.update_urls(self.seeds)
 
-        threads = []
-            
         for i in range(self.max_workers):
             thread = threading.Thread(target=self._crawl, name=f"Worker-{i}")
-            threads.append(thread)
+            self.threads.append(thread)
             thread.start()
         
-        for thread in threads:
+        for thread in self.threads:
             thread.join()
         
-            
+        # self.analysis.print_report()
 
-    def stop(self):
-        self.running = False
-        for t in self.threads:
-            t.join()

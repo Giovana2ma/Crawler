@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from url_normalize import url_normalize
 import threading
 from protego import Protego
+import logging
 
 
 class Fetcher():
@@ -29,7 +30,7 @@ class Fetcher():
                 return response
                 
         except Exception as e:
-            print(f"Error fetching URL {url}: {e}")
+            logging.error(f"Error fetching URL {url}: {e}")
         return None
         
     def get_content(self):
@@ -42,8 +43,12 @@ class Fetcher():
         for link in self.soup.find_all('a'):
             href = link.get('href')
             if href and href.startswith('http'):
-                normalized_url = url_normalize(href)
-                links.append(normalized_url)
+                try:
+                    normalized_url = url_normalize(href)
+                    links.append(normalized_url)
+                except Exception as e:
+                    logging.error(f"Error normalizing URL {href}: {e}")
+                    pass
         return links
 
     def collect(self,url):
@@ -63,21 +68,4 @@ class Fetcher():
 
         return title,content,links,response
     
-    def get_delay(self, domain):
-        rp = Protego.parse(domain + "/robots.txt") 
-        delay = rp.crawl_delay("*")
-
-        if delay is None:
-            return  0.2
-        else:
-            return delay
-
-    def can_crawl(self, url):
-        rp = Protego.parse(url + "/robots.txt") 
-        can_crawl = rp.can_fetch("*", url)
-
-        if not can_crawl:
-            return False
-
-        return True
     
