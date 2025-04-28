@@ -50,6 +50,7 @@ class Crawler:
             domain_lock = self.get_lock(domain) 
             with domain_lock:
                 result = fetcher.collect(url)
+                
             self.frontier.update_use(domain)
 
             if result is None:
