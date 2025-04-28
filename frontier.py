@@ -25,8 +25,8 @@ class Frontier:
             return
         if url in self.visited:
             return
-        
-        self.frontier[domain].append(url)
+        if domain not in self.baned_domains:
+            self.frontier[domain].append(url)
 
     def error(self, domain):
         with self.lock:
@@ -37,11 +37,8 @@ class Frontier:
 
             if self.domain_errorr[domain] >= 5:
                 self.baned_domains.add(domain)
-                self.domain_errorr.pop(domain, None)
-                self.frontier.pop(domain, None)
-                self.domain_last_access.pop(domain, None)
-                self.domain_delay.pop(domain, None)
-                self.domain_in_use.pop(domain, None)
+                if domain in self.frontier:
+                    del self.frontier[domain]
 
 
     def can_crawl(self, url):

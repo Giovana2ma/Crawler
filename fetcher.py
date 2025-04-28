@@ -31,6 +31,7 @@ class Fetcher():
                 
         except Exception as e:
             logging.error(f"Error fetching URL {url}: {e}")
+            pass
         return None
         
     def get_content(self):
