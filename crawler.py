@@ -58,7 +58,6 @@ class Crawler:
 
 
             title, content, links, response = result
-            self.analysis.add_page(url, content)
             self.debugger.log(url, title, content)
     
             timestamp = time.time()
