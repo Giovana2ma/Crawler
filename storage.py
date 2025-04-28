@@ -25,23 +25,22 @@ class Storage:
         return full_response
 
     def write(self, buffer):
-        with self.lock:
-            if len(buffer) == 0:
-                return
+        if len(buffer) == 0:
+            return
 
-            file_path = f"{self.output_dir}/output-{self.count}.warc.gz"
+        file_path = f"{self.output_dir}/output-{self.count}.warc.gz"
 
-            with open(file_path, "wb") as stream:
-                writer = WARCWriter(stream, gzip=True)
-                for page in buffer:
-                    http_response_bytes = self._build_http_response(page.content)
+        with open(file_path, "wb") as stream:
+            writer = WARCWriter(stream, gzip=True)
+            for page in buffer:
+                http_response_bytes = self._build_http_response(page.content)
 
-                    with BytesIO(http_response_bytes) as payload:
-                        record = writer.create_warc_record(
-                            page.url,
-                            "response",
-                            payload=payload
-                        )
-                        writer.write_record(record)
+                with BytesIO(http_response_bytes) as payload:
+                    record = writer.create_warc_record(
+                        page.url,
+                        "response",
+                        payload=payload
+                    )
+                    writer.write_record(record)
 
-            self.count += 1
+        self.count += 1
