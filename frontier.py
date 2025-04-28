@@ -2,6 +2,8 @@ from urllib.parse import urlparse
 from url_normalize import url_normalize
 from collections import defaultdict
 from protego import Protego
+from fetcher import Fetcher
+from session import Session
 import time
 import random
 import threading
@@ -9,7 +11,9 @@ import threading
 class Frontier:
     def __init__(self):
         self.domain_last_access = {}
+        self.session = Session()
         self.domain_delay = {}
+        self.fetcher = Fetcher(self.session)
         self.frontier = defaultdict(list)
         self.lock = threading.Lock()
         self.visited = set()
@@ -22,17 +26,7 @@ class Frontier:
             return
         
         self.frontier[domain].append(url)
-        if domain not in self.domain_delay:
-            self.get_delay(url, domain)
 
-    def get_delay(self, url, domain):
-        rp = Protego.parse(url + "/robots.txt") 
-        delay = rp.crawl_delay("*")
-
-        if delay is None:
-            self.domain_delay[domain] = 0.2
-        else:
-            self.domain_delay[domain] = delay
 
     def can_crawl(self, url):
         rp = Protego.parse(url + "/robots.txt") 
@@ -68,17 +62,26 @@ class Frontier:
                 domains = list(self.frontier.keys())
                 random.shuffle(domains)
                 for domain in domains:
-                    if not self.frontier[domain]:
+                    if  not self.frontier[domain]:
                         del self.frontier[domain]
                         continue
 
                     last_access = self.domain_last_access.get(domain, 0)
+
+                    if domain not in self.domain_delay:
+                        self.domain_delay[domain] = self.fetcher.get_delay(domain)
+
                     delay = self.domain_delay.get(domain, 0.2)
 
                     if now - last_access >= delay:
                         idx = random.randrange(0, len(self.frontier[domain]))  
                         url = self.frontier[domain].pop(idx)
-                        if url in self.visited:
+
+                        if not self.fetcher.can_crawl(url):
+                            self.visited.add(url)
+                            continue
+
+                        if url  in self.visited:
                             continue
 
                         self.visited.add(url) 

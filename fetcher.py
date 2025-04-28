@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 from url_normalize import url_normalize
 import threading
+from protego import Protego
+
 
 class Fetcher():
     def __init__(self,session):
@@ -60,4 +62,22 @@ class Fetcher():
             links = self.get_links()
 
         return title,content,links,response
+    
+    def get_delay(self, domain):
+        rp = Protego.parse(domain + "/robots.txt") 
+        delay = rp.crawl_delay("*")
+
+        if delay is None:
+            return  0.2
+        else:
+            return delay
+
+    def can_crawl(self, url):
+        rp = Protego.parse(url + "/robots.txt") 
+        can_crawl = rp.can_fetch("*", url)
+
+        if not can_crawl:
+            return False
+
+        return True
     
