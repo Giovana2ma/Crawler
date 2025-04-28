@@ -4,7 +4,6 @@ from fetcher import Fetcher
 from session import Session
 from storage import Storage
 from debugger import Debugger
-from analysis import Analysis
 
 import time
 
@@ -32,7 +31,6 @@ class Crawler:
         self.frontier = Frontier()
         self.session = Session()
         self.storage = Storage(execution_id)
-        self.analysis = Analysis()
         self.debugger = Debugger(debugger_mode)
 
     def get_lock(self, domain):
@@ -75,7 +73,7 @@ class Crawler:
 
     def store_content(self, content):
         with self.lock:
-            if self.count % 10 == 0:
+            if self.count % 1000 == 0:
                 self.storage.write(self.buffer)
                 self.buffer = []
 
